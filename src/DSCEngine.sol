@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title DSCEngine
@@ -19,7 +20,7 @@ import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
  *
  * It is similar to DAI if DAI had no governance, no fees, and was only backed by wETH nad wBTC.
  */
-contract DSCEngine {
+contract DSCEngine is ReentrancyGuard {
     // errors --------------------------------------------------------------------------------
     error DSCEngine__NeedMoreThanZero(); // amount must be more than zero
     error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength(); // token addresses and price feed addresses must be the same length
@@ -90,7 +91,12 @@ contract DSCEngine {
     function depositCollateral(
         address _tokenCollateralAddress,
         uint256 _amountCollateral
-    ) external moreThanZero(_amountCollateral) {}
+    )
+        external
+        moreThanZero(_amountCollateral)
+        isTokenAllowed(_tokenCollateralAddress)
+        nonReentrant
+    {}
 
     function redeemCollateralForDSC() external {}
 
