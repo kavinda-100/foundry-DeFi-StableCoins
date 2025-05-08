@@ -18,5 +18,19 @@ pragma solidity ^0.8.25;
  * It is similar to DAI if DAI had no governance, no fees, and was only backed by wETH nad wBTC.
  */
 contract DSCEngine {
+    function depositCollateralAndMintDSC() external {}
 
+    function depositCollateral() external {}
+
+    function redeemCollateralForDSC() external {}
+
+    function redeemCollateral() external {}
+
+    function mintDSC() external {}
+
+    function burnDSC() external {}
+
+    function liquidate() external {}
+
+    function getHealthFactor() external view {}
 }
