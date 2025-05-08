@@ -28,12 +28,15 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength(); // token addresses and price feed addresses must be the same length
     error DSCEngine__NotAllowedToken(); // token is not allowed
     error DSCEngine__TransferFailed(); // transfer failed
+    error DSCEngine__BrokenHealthFactor(uint256 healthFactor); // health factor is broken
+    error DSCEngine__MintingFailed(); // minting failed
 
     // state variables --------------------------------------------------------------------
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10; // additional feed precision
     uint256 private constant PRECISION = 1e18; // additional feed precision
     uint256 private constant LIQUIDATION_THRESHOLD = 50; // liquidation threshold 200% overcollateralized
     uint256 private constant LIQUIDATION_PRECISION = 100; // liquidation threshold 200% overcollateralized
+    uint256 private constant MIN_HEALTH_FACTOR = 1; // minimum health factor
 
     DecentralizedStableCoin private immutable i_dsc; // DSC token contract
     mapping(address _token => address _priceFeed) private s_priceFeeds; // token address => price feed address
@@ -139,7 +142,7 @@ contract DSCEngine is ReentrancyGuard {
         bool success = i_dsc.mint(msg.sender, _amountDSCToMint);
         // check if the minting was successful and revert if it failed
         if (!success) {
-            revert DSCEngine__TransferFailed();
+            revert DSCEngine__MintingFailed();
         }
     }
 
@@ -154,8 +157,8 @@ contract DSCEngine is ReentrancyGuard {
         // get the health factor of the user
         uint256 healthFactor = _getHealthFactor(_user);
         // check if the health factor is broken and revert if it is
-        if (healthFactor < 1) {
-            revert DSCEngine__NotAllowedToken();
+        if (healthFactor < MIN_HEALTH_FACTOR) {
+            revert DSCEngine__BrokenHealthFactor(healthFactor);
         }
     }
 
