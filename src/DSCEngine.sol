@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title DSCEngine
@@ -25,10 +26,17 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__NeedMoreThanZero(); // amount must be more than zero
     error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength(); // token addresses and price feed addresses must be the same length
     error DSCEngine__NotAllowedToken(); // token is not allowed
+    error DSCEngine__TransferFailed(); // transfer failed
 
     // state variables --------------------------------------------------------------------
     DecentralizedStableCoin private immutable i_dsc; // DSC token contract
     mapping(address _token => address _priceFeed) private s_priceFeeds; // token address => price feed address
+    mapping(address _user => mapping(address _token => uint256 _amount)) private s_collateralDeposited; // user address => token address => amount of collateral
+
+    // events ------------------------------------------------------------------------------------
+    event DepositCollateral(
+        address indexed user, address indexed tokenCollateralAddress, uint256 indexed amountCollateral
+    ); // event for deposit collateral
 
     // modifiers ------------------------------------------------------------------------------------
     /**
@@ -60,18 +68,14 @@ contract DSCEngine is ReentrancyGuard {
      * @param _priceFeedAddresses  The addresses of the price feeds for the tokens.
      * @param _DSCAddress  The address of the DSC token contract.
      */
-    constructor(
-        address[] memory _tokenAddresses,
-        address[] memory _priceFeedAddresses,
-        address _DSCAddress
-    ) {
+    constructor(address[] memory _tokenAddresses, address[] memory _priceFeedAddresses, address _DSCAddress) {
         // check if the token addresses and price feed addresses are the same length
         if (_tokenAddresses.length != _priceFeedAddresses.length) {
             revert DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength();
         }
 
         // set the price feeds for each token address
-        for (uint i = 0; i < _tokenAddresses.length; i++) {
+        for (uint256 i = 0; i < _tokenAddresses.length; i++) {
             s_priceFeeds[_tokenAddresses[i]] = _priceFeedAddresses[i];
         }
 
@@ -88,21 +92,35 @@ contract DSCEngine is ReentrancyGuard {
      * @param _tokenCollateralAddress  The address of the collateral token to deposit.
      * @param _amountCollateral  The amount of collateral to deposit.
      */
-    function depositCollateral(
-        address _tokenCollateralAddress,
-        uint256 _amountCollateral
-    )
+    function depositCollateral(address _tokenCollateralAddress, uint256 _amountCollateral)
         external
         moreThanZero(_amountCollateral)
         isTokenAllowed(_tokenCollateralAddress)
         nonReentrant
-    {}
+    {
+        // update the amount of collateral deposited by the user
+        s_collateralDeposited[msg.sender][_tokenCollateralAddress] += _amountCollateral;
+
+        // emit an event for the deposit
+        emit DepositCollateral(msg.sender, _tokenCollateralAddress, _amountCollateral);
+
+        // transfer the collateral from the user to this contract
+        bool success = IERC20(_tokenCollateralAddress).transferFrom(msg.sender, address(this), _amountCollateral);
+        // check if the transfer was successful and revert if it failed
+        if (!success) {
+            revert DSCEngine__TransferFailed();
+        }
+    }
 
     function redeemCollateralForDSC() external {}
 
     function redeemCollateral() external {}
 
-    function mintDSC() external {}
+    /**
+     * @param _amountDSCToMint The amount of DSC to mint.
+     * @dev This function mints DSC tokens.
+     */
+    function mintDSC(uint256 _amountDSCToMint) external moreThanZero(_amountDSCToMint) nonReentrant {}
 
     function burnDSC() external {}
 
