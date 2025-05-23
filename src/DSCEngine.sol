@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import {DecentralizeStableCoin} from "./DecentralizedStableCoin.sol";
+
 /**
  * @title DSCEngine
  * @author Kavinda Rathnayake
@@ -20,11 +22,66 @@ pragma solidity ^0.8.24;
  * than the value of the DSC minted.
  */
 contract DSCEngine {
-    constructor() {}
+    // Errors -----------------------------------------------------
+    error DSCEngine__MustBeMoreThanZero();
+    error DSCEngine__PriceFeedAndTokenAddressLengthMismatch();
+    error DSCEngine__TokenNotAllowed();
+
+    // State Variables ----------------------------------------
+    DecentralizeStableCoin private immutable i_DSCAddress; // the address of the DSC contract
+    mapping(address token => address priceFeed) private s_priceFeeders; // token address => price feed address
+
+    // contracts -------------------------------------------------
+    constructor(address[] memory tokenAddresses, address[] memory priceFeedAddress, address DSCAddress) {
+        // check if the tokenAddresses and priceFeedAddress arrays are the same length
+        if (tokenAddresses.length != priceFeedAddress.length) {
+            revert DSCEngine__PriceFeedAndTokenAddressLengthMismatch();
+        }
+        // loop through the tokenAddresses and priceFeedAddress arrays and set the price feeders
+        for (uint256 i = 0; i < tokenAddresses.length; i++) {
+            s_priceFeeders[tokenAddresses[i]] = priceFeedAddress[i];
+        }
+        // set the DSC address
+        i_DSCAddress = DecentralizeStableCoin(DSCAddress);
+    }
+
+    // Modifiers ------------------------------------------------
+
+    /**
+     * @notice This modifier checks if the amount is greater than zero.
+     * @param _amount The amount to check.
+     */
+    modifier moreThanZero(uint256 _amount) {
+        if (_amount <= 0) {
+            revert DSCEngine__MustBeMoreThanZero();
+        }
+        _;
+    }
+
+    /**
+     * @notice This modifier checks if the collateral token is allowed.
+     * @param _collateralToken The address of the collateral token.
+     */
+    modifier isAllowedCollateralToken(address _collateralToken) {
+        if (s_priceFeeders[_collateralToken] == address(0)) {
+            revert DSCEngine__TokenNotAllowed();
+        }
+        _;
+    }
+
+    // Functions -------------------------------------------------
 
     function depositCollateralAndMintDSC() external {}
 
-    function depositCollateral() external {}
+    /**
+     * @param _tokenCollateralAddress : The address of the collateral token.
+     * @param _amountCollateral : The amount of collateral to deposit.
+     */
+    function depositCollateral(address _tokenCollateralAddress, uint256 _amountCollateral)
+        external
+        moreThanZero(_amountCollateral)
+        isAllowedCollateralToken(_tokenCollateralAddress)
+    {}
 
     function redeemCollateralForBurnDSC() external {}
 
