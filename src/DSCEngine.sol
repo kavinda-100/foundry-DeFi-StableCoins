@@ -15,7 +15,26 @@ pragma solidity ^0.8.24;
  *
  * @notice This contract is the core is the DSC System. It handle the all logic for minting and redeeming DSC,
  * as well as depositing and withdrawing collateral. This contract is VERY loosely based on the MakerDAO DSS (DAI) system.
+ *
+ * @notice IMPORTANT: This contract is always Over-Collateralize. This means that the value of the collateral must always be greater
+ * than the value of the DSC minted.
  */
 contract DSCEngine {
     constructor() {}
+
+    function depositCollateralAndMintDSC() external {}
+
+    function depositCollateral() external {}
+
+    function redeemCollateralForBurnDSC() external {}
+
+    function redeemCollateral() external {}
+
+    function mintDSC() external {}
+
+    function burnDSC() external {}
+
+    function liquidate() external {}
+
+    function getHealthFactor() external view returns (uint256) {}
 }
