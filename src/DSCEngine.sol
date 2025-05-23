@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {DecentralizeStableCoin} from "./DecentralizedStableCoin.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title DSCEngine
@@ -21,17 +22,24 @@ import {DecentralizeStableCoin} from "./DecentralizedStableCoin.sol";
  * @notice IMPORTANT: This contract is always Over-Collateralize. This means that the value of the collateral must always be greater
  * than the value of the DSC minted.
  */
-contract DSCEngine {
-    // Errors -----------------------------------------------------
+contract DSCEngine is ReentrancyGuard {
+    //? Errors -----------------------------------------------------
+
     error DSCEngine__MustBeMoreThanZero();
     error DSCEngine__PriceFeedAndTokenAddressLengthMismatch();
     error DSCEngine__TokenNotAllowed();
 
-    // State Variables ----------------------------------------
+    //? State Variables ----------------------------------------
+
     DecentralizeStableCoin private immutable i_DSCAddress; // the address of the DSC contract
     mapping(address token => address priceFeed) private s_priceFeeders; // token address => price feed address
+    mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited; // user address => token address => amount of collateral deposited
 
-    // contracts -------------------------------------------------
+    //? Events -----------------------------------------------------
+    event CollateralDeposited(address indexed user, address indexed token, uint256 amount);
+
+    //? contracts -------------------------------------------------
+
     constructor(address[] memory tokenAddresses, address[] memory priceFeedAddress, address DSCAddress) {
         // check if the tokenAddresses and priceFeedAddress arrays are the same length
         if (tokenAddresses.length != priceFeedAddress.length) {
@@ -45,7 +53,7 @@ contract DSCEngine {
         i_DSCAddress = DecentralizeStableCoin(DSCAddress);
     }
 
-    // Modifiers ------------------------------------------------
+    //? Modifiers ------------------------------------------------
 
     /**
      * @notice This modifier checks if the amount is greater than zero.
@@ -69,7 +77,7 @@ contract DSCEngine {
         _;
     }
 
-    // Functions -------------------------------------------------
+    //? Functions -------------------------------------------------
 
     function depositCollateralAndMintDSC() external {}
 
@@ -81,7 +89,16 @@ contract DSCEngine {
         external
         moreThanZero(_amountCollateral)
         isAllowedCollateralToken(_tokenCollateralAddress)
-    {}
+        nonReentrant
+    {
+        // transfer the collateral from the user to this contract
+        // IERC20(_tokenCollateralAddress).transferFrom(msg.sender, address(this), _amountCollateral);
+        // update the amount of collateral deposited
+        s_collateralDeposited[msg.sender][_tokenCollateralAddress] += _amountCollateral;
+
+        // emit the CollateralDeposited event
+        emit CollateralDeposited(msg.sender, _tokenCollateralAddress, _amountCollateral);
+    }
 
     function redeemCollateralForBurnDSC() external {}
 
