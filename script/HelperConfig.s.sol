@@ -65,4 +65,8 @@ contract HelperConfig is Script {
             deployerKey: DEFAULT_ANVIL_PRIVATE_KEY
         });
     }
+
+    function getNetWorkConfig() external view returns (NetworkConfig memory) {
+        return activeNetworkConfig;
+    }
 }
