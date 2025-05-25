@@ -32,6 +32,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TokenNotAllowed();
     error DSCEngine__TransferFailed();
     error DSCEngine__HealthFactorBroken(uint256 healthFactor, uint256 minHealthFactor);
+    error DSCEngine__MintDSCFailed();
 
     //? State Variables ----------------------------------------
     //* Constants
@@ -131,6 +132,12 @@ contract DSCEngine is ReentrancyGuard {
         s_DSCMinted[msg.sender] += _amountDSCToMint;
         // check if the user has enough collateral to mint the DSC
         _revertIfHeathFactorIsBroken(msg.sender);
+        // mint the DSC tokens to the user
+        bool success = i_DSCAddress.mint(msg.sender, _amountDSCToMint);
+        // check if the minting was successful
+        if (!success) {
+            revert DSCEngine__MintDSCFailed();
+        }
     }
 
     function burnDSC() external {}
@@ -139,6 +146,11 @@ contract DSCEngine is ReentrancyGuard {
 
     function getHealthFactor() external view returns (uint256) {}
 
+    /**
+     * @notice This function returns the total amount of collateral deposited by the user in USD.
+     * @param _user The address of the user to get the collateral value for.
+     * @return totalCollateralValueInUSD The total value of the collateral deposited by the user in USD.
+     */
     function getAccountCollateralValueInUSD(address _user) public view returns (uint256 totalCollateralValueInUSD) {
         // loop through all collateral tokens deposited by the user, get the amount they have deposited, and
         // map to the price feed to get the price of the token in USD
@@ -150,6 +162,12 @@ contract DSCEngine is ReentrancyGuard {
         return totalCollateralValueInUSD;
     }
 
+    /**
+     * @notice This function returns the USD value of a given token amount.
+     * @param _token The address of the token to get the USD value for.
+     * @param _amount The amount of the token to get the USD value for.
+     * @return The USD value of the given token amount.
+     */
     function getUSDValue(address _token, uint256 _amount) public view returns (uint256) {
         // 1. Get the price feed address for the token
         // 2. Get the price of the token in USD
@@ -164,6 +182,12 @@ contract DSCEngine is ReentrancyGuard {
 
     //? Functions (internal & private)-------------------------------------------------
 
+    /**
+     * @notice This function gets the total DSC minted and the total collateral value in USD for a user.
+     * @param _user The address of the user to get the information for.
+     * @return totalDSCMinted The total DSC minted by the user.
+     * @return totalCollateralValueInUSD The total collateral value in USD deposited by the user.
+     */
     function _getAccountInformation(address _user)
         private
         view
@@ -205,6 +229,11 @@ contract DSCEngine is ReentrancyGuard {
         return (CollateralAdjustedThreshold * PRECISION) / totalDSCMinted;
     }
 
+    /**
+     * @notice This function checks if the user's health factor is broken and reverts if it is.
+     * @param _user The address of the user to check the health factor for.
+     * @dev This function is used to ensure that the user has enough collateral to cover the DSC minted.
+     */
     function _revertIfHeathFactorIsBroken(address _user) internal view {
         // 1. Check health factor (do they have enough collateral to cover the DSC minted?)
         // 2. Revert if the health factor is broken
