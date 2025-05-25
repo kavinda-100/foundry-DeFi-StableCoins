@@ -36,6 +36,9 @@ contract DSCEngine is ReentrancyGuard {
 
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10; // 10^10, used to adjust the price feed values to match the precision of the DSC token
     uint256 private constant PRECISION = 1e18; // 10^18, used to adjust the values to match the precision of the DSC token
+    uint256 private constant LIQUIDATION_THRESHOLD = 50; // 50%, the threshold at which a user can be liquidated
+    uint256 private constant LIQUIDATION_PRECISION = 100; // 100%, used to adjust the values to match the precision of the DSC token
+
     DecentralizeStableCoin private immutable i_DSCAddress; // the address of the DSC contract
     mapping(address token => address priceFeed) private s_priceFeeders; // token address => price feed address
     mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited; // user address => token address => amount of collateral deposited
@@ -182,7 +185,22 @@ contract DSCEngine is ReentrancyGuard {
         // 1. Get the total DSC minted by the user
         // 2. Get the total collateral value deposited by the user
         (uint256 totalDSCMinted, uint256 totalCollateralValueInUSD) = _getAccountInformation(_user);
-        return 0; // Placeholder return value, implement logic here
+        uint256 CollateralAdjustedThreshold =
+            (totalCollateralValueInUSD * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
+
+        // ! Example 1:
+        // (1000 ETH * LIQUIDATION_THRESHOLD (50)) => (50,000 => 50,000 / LIQUIDATION_PRECISION) => 500
+        // 150 ETH / 100 DSC = 1.5
+        // (150 * 50) => (7500 / 100) => (75 / 1000) => 0.075 < 1 => user is at risk of liquidation
+
+        // ! Example 2:
+        // Assume user has $2,000 worth of collateral and has minted 1,000 DSC.
+        // LIQUIDATION_THRESHOLD = 50 (50%), LIQUIDATION_PRECISION = 100, PRECISION = 1e18
+        // CollateralAdjustedThreshold = (2,000 * 50) / 100 = $1,000
+        // Health factor = ($1,000 * 1e18) / 1,000 = 1e18 (which is 1.0 in 18 decimals)
+        // If health factor < 1e18 (i.e., < 1.0), user is at risk of liquidation.
+
+        return (CollateralAdjustedThreshold * PRECISION) / totalDSCMinted;
     }
 
     function _revertIfHeathFactorIsBroken(address _user) internal view {
