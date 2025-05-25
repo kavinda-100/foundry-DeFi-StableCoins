@@ -31,14 +31,16 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__PriceFeedAndTokenAddressLengthMismatch();
     error DSCEngine__TokenNotAllowed();
     error DSCEngine__TransferFailed();
+    error DSCEngine__HealthFactorBroken(uint256 healthFactor, uint256 minHealthFactor);
 
     //? State Variables ----------------------------------------
-
+    //* Constants
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10; // 10^10, used to adjust the price feed values to match the precision of the DSC token
     uint256 private constant PRECISION = 1e18; // 10^18, used to adjust the values to match the precision of the DSC token
     uint256 private constant LIQUIDATION_THRESHOLD = 50; // 50%, the threshold at which a user can be liquidated
     uint256 private constant LIQUIDATION_PRECISION = 100; // 100%, used to adjust the values to match the precision of the DSC token
-
+    uint256 private constant MIN_HEALTH_FACTOR = 1e18; // 1.0, the minimum health factor a user must have to avoid liquidation
+    //* other state variables
     DecentralizeStableCoin private immutable i_DSCAddress; // the address of the DSC contract
     mapping(address token => address priceFeed) private s_priceFeeders; // token address => price feed address
     mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited; // user address => token address => amount of collateral deposited
@@ -206,5 +208,9 @@ contract DSCEngine is ReentrancyGuard {
     function _revertIfHeathFactorIsBroken(address _user) internal view {
         // 1. Check health factor (do they have enough collateral to cover the DSC minted?)
         // 2. Revert if the health factor is broken
+        uint256 healthFactor = _heathFactor(_user);
+        if (healthFactor < MIN_HEALTH_FACTOR) {
+            revert DSCEngine__HealthFactorBroken(healthFactor, MIN_HEALTH_FACTOR);
+        }
     }
 }
