@@ -36,6 +36,8 @@ contract DSCEngine is ReentrancyGuard {
     DecentralizeStableCoin private immutable i_DSCAddress; // the address of the DSC contract
     mapping(address token => address priceFeed) private s_priceFeeders; // token address => price feed address
     mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited; // user address => token address => amount of collateral deposited
+    mapping (address user => uint256 amountDSCMinted) private s_DSCMinted; // user address => amount of DSC minted
+    address[] private s_CollateralTokens; // array of allowed collateral tokens
 
     //? Events -----------------------------------------------------
     event CollateralDeposited(address indexed user, address indexed token, uint256 amount);
@@ -50,6 +52,7 @@ contract DSCEngine is ReentrancyGuard {
         // loop through the tokenAddresses and priceFeedAddress arrays and set the price feeders
         for (uint256 i = 0; i < tokenAddresses.length; i++) {
             s_priceFeeders[tokenAddresses[i]] = priceFeedAddress[i];
+            s_CollateralTokens.push(tokenAddresses[i]); // add the token to the collateral tokens array
         }
         // set the DSC address
         i_DSCAddress = DecentralizeStableCoin(DSCAddress);
@@ -79,7 +82,7 @@ contract DSCEngine is ReentrancyGuard {
         _;
     }
 
-    //? Functions -------------------------------------------------
+    //? Functions (external & public)-------------------------------------------------
 
     function depositCollateralAndMintDSC() external {}
 
@@ -109,11 +112,61 @@ contract DSCEngine is ReentrancyGuard {
 
     function redeemCollateral() external {}
 
-    function mintDSC() external {}
+    /**
+     * @notice This function mints DSC tokens.
+     * @param _amountDSCToMint The amount of DSC tokens to mint.
+     * @notice They must have more collateral than the minimum threshold.
+     * @dev This function is non-reentrant and checks that the amount to mint is greater than zero.
+     */
+    function mintDSC(uint256 _amountDSCToMint) external moreThanZero(_amountDSCToMint) nonReentrant {
+        // update the amount of DSC minted
+        s_DSCMinted[msg.sender] += _amountDSCToMint;
+        // check if the user has enough collateral to mint the DSC
+        _revertIfHeathFactorIsBroken(msg.sender);
+    
+    }
 
     function burnDSC() external {}
 
     function liquidate() external {}
 
     function getHealthFactor() external view returns (uint256) {}
+
+    function getAccountCollateralValueInUSD(address _user) public view returns (uint256) {
+        // loop through all collateral tokens deposited by the user, get the amount they have deposited, and
+        // map to the price feed to get the price of the token in USD
+        uint256 totalCollateralValueInUSD = 0;
+        // Loop through all collateral tokens and calculate their value in USD
+        return totalCollateralValueInUSD;
+    }
+
+    //? Functions (internal & private)-------------------------------------------------
+
+    function _getAccountInformation(address _user) private view  returns (uint256 totalDSCMinted, uint256 totalCollateralValueInUSD) {
+        // 1. Get the total DSC minted by the user
+        // 2. Get the total collateral value in usd deposited by the user
+        // 3. Return both values
+        totalDSCMinted = s_DSCMinted[_user];
+        totalCollateralValueInUSD = getAccountCollateralValueInUSD(_user);
+        return (totalDSCMinted, totalCollateralValueInUSD); 
+    }
+
+    /**
+     * @notice This function calculates the health factor of a user by checking how close they are to liquidation.
+     * @param _user The address of the user to calculate the health factor for.
+     * @return The health factor of the user.
+     * @dev If the user goes below 1, they are at risk of liquidation.
+     */
+    function _heathFactor(address _user) private view  returns (uint256) {
+        // 1. Get the total DSC minted by the user
+        // 2. Get the total collateral value deposited by the user
+        (uint256 totalDSCMinted, uint256 totalCollateralValueInUSD) = _getAccountInformation(_user);
+        return 0; // Placeholder return value, implement logic here
+        
+    }
+
+    function _revertIfHeathFactorIsBroken(address _user) internal view {
+        // 1. Check health factor (do they have enough collateral to cover the DSC minted?)
+        // 2. Revert if the health factor is broken
+    }
 }
