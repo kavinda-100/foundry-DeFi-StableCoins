@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Script} from "forge-std/Script.sol";
 import {MockV3Aggregator} from "../test/mocks/MockV3Aggregator.sol";
+import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract HelperConfig is Script {
     struct NetworkConfig {
@@ -18,6 +19,7 @@ contract HelperConfig is Script {
     uint8 public constant DECIMALS = 8;
     int256 public constant ETH_USD_PRICE = 2000e8;
     int256 public constant BTC_USD_PRICE = 1000e8;
+    uint256 public DEFAULT_ANVIL_PRIVATE_KEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
 
     constructor() {
         if (block.chainid == 11155111) {
@@ -42,5 +44,25 @@ contract HelperConfig is Script {
         if (activeNetworkConfig.wethUSDPriceFeed != address(0)) {
             return activeNetworkConfig;
         }
+
+        vm.startBroadcast();
+
+        // Create mock price feeds
+        MockV3Aggregator ethUSDPriceFeed = new MockV3Aggregator(DECIMALS, ETH_USD_PRICE);
+        MockV3Aggregator btcUSDPriceFeed = new MockV3Aggregator(DECIMALS, BTC_USD_PRICE);
+
+        // Create mock ERC20 tokens
+        ERC20Mock wethMock = new ERC20Mock();
+        ERC20Mock wbtcMock = new ERC20Mock();
+
+        vm.stopBroadcast();
+
+        anvilNetworkConfig = NetworkConfig({
+            wethUSDPriceFeed: address(ethUSDPriceFeed),
+            wbtcUSDPriceFeed: address(btcUSDPriceFeed),
+            weth: address(wethMock),
+            wbtc: address(wbtcMock),
+            deployerKey: DEFAULT_ANVIL_PRIVATE_KEY
+        });
     }
 }
