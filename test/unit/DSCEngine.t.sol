@@ -12,6 +12,8 @@ contract DSCEngineTest is Test {
     DSCEngine public dscEngine;
     DeployDSC public deployer;
     HelperConfig public helperConfig;
+    address ethUSDPriceFeed;
+    address weth;
 
     address USER = makeAddr("user");
 
@@ -20,7 +22,19 @@ contract DSCEngineTest is Test {
     function setUp() external {
         deployer = new DeployDSC();
         (dsc, dscEngine, helperConfig) = deployer.run();
+        ethUSDPriceFeed = helperConfig.getNetWorkConfig().wethUSDPriceFeed;
+        weth = helperConfig.getNetWorkConfig().weth;
 
         vm.deal(USER, INITIAL_USER_ETH_BALANCE); // Give USER 1000 ether
+    }
+
+    //? Price Feed Tests -----------------------------------------------
+
+    function testGetUSDValue() external view {
+        uint256 ethAmount = 15 ether;
+        // 15e18 * 2000/ETH = 30000e18
+        uint256 expectedUSDValue = 30000e18;
+        uint256 actualUSDValue = dscEngine.getUSDValue(weth, ethAmount);
+        assertEq(actualUSDValue, expectedUSDValue, "USD value should match expected value");
     }
 }
