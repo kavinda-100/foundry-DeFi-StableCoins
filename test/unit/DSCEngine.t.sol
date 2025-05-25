@@ -19,7 +19,7 @@ contract DSCEngineTest is Test {
 
     function setUp() external {
         deployer = new DeployDSC();
-        (dsc, dscEngine) = deployer.run();
+        (dsc, dscEngine, helperConfig) = deployer.run();
 
         vm.deal(USER, INITIAL_USER_ETH_BALANCE); // Give USER 1000 ether
     }
