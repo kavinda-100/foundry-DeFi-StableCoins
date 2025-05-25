@@ -134,14 +134,15 @@ contract DSCEngine is ReentrancyGuard {
 
     function getHealthFactor() external view returns (uint256) {}
 
-    function getAccountCollateralValueInUSD(address _user) public view returns (uint256) {
+    function getAccountCollateralValueInUSD(address _user) public view returns (uint256 totalCollateralValueInUSD) {
         // loop through all collateral tokens deposited by the user, get the amount they have deposited, and
         // map to the price feed to get the price of the token in USD
         for (uint256 i = 0; i < s_CollateralTokens.length; i++) {
             address collateralToken = s_CollateralTokens[i];
             uint256 amountCollateral = s_collateralDeposited[_user][collateralToken];
-            uint256 totalCollateralValueInUSD = getUSDValue(collateralToken, amountCollateral);
+            totalCollateralValueInUSD += getUSDValue(collateralToken, amountCollateral);
         }
+        return totalCollateralValueInUSD;
     }
 
     function getUSDValue(address _token, uint256 _amount) public view returns (uint256) {
