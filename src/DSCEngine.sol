@@ -93,14 +93,21 @@ contract DSCEngine is ReentrancyGuard {
 
     //? Functions (external & public)-------------------------------------------------
 
-    function depositCollateralAndMintDSC() external {}
+    function depositCollateralAndMintDSC(
+        address _tokenCollateralAddress,
+        uint256 _amountCollateral,
+        uint256 _amountDSCToMint
+    ) external {
+        depositCollateral(_tokenCollateralAddress, _amountCollateral);
+        mintDSC(_amountDSCToMint);
+    }
 
     /**
      * @param _tokenCollateralAddress : The address of the collateral token.
      * @param _amountCollateral : The amount of collateral to deposit.
      */
     function depositCollateral(address _tokenCollateralAddress, uint256 _amountCollateral)
-        external
+        public
         moreThanZero(_amountCollateral)
         isAllowedCollateralToken(_tokenCollateralAddress)
         nonReentrant
@@ -127,7 +134,7 @@ contract DSCEngine is ReentrancyGuard {
      * @notice They must have more collateral than the minimum threshold.
      * @dev This function is non-reentrant and checks that the amount to mint is greater than zero.
      */
-    function mintDSC(uint256 _amountDSCToMint) external moreThanZero(_amountDSCToMint) nonReentrant {
+    function mintDSC(uint256 _amountDSCToMint) public moreThanZero(_amountDSCToMint) nonReentrant {
         // update the amount of DSC minted
         s_DSCMinted[msg.sender] += _amountDSCToMint;
         // check if the user has enough collateral to mint the DSC
