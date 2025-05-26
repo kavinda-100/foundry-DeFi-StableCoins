@@ -154,6 +154,12 @@ contract DSCEngine is ReentrancyGuard {
         redeemCollateral(_tokenCollateralAddress, _amountCollateral);
     }
 
+    /**
+     * @notice This function redeems collateral from the user.
+     * @param _tokenCollateralAddress The address of the collateral token.
+     * @param _amountCollateral The amount of collateral to redeem.
+     * @notice This function is non-reentrant and checks that the amount to redeem is greater than zero.
+     */
     function redeemCollateral(address _tokenCollateralAddress, uint256 _amountCollateral)
         public
         moreThanZero(_amountCollateral)
@@ -184,6 +190,11 @@ contract DSCEngine is ReentrancyGuard {
         }
     }
 
+    /**
+     * @notice This function burns DSC tokens.
+     * @param _amount The amount of DSC tokens to burn.
+     * @notice This function is non-reentrant and checks that the amount to burn is greater than zero.
+     */
     function burnDSC(uint256 _amount) public moreThanZero(_amount) {
         // burn the DSC tokens from the user
         _burnDSC(_amount, msg.sender, msg.sender);
