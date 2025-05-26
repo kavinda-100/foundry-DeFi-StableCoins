@@ -14,6 +14,7 @@ contract DSCEngineTest is Test {
     DeployDSC public deployer;
     HelperConfig public helperConfig;
     address ethUSDPriceFeed;
+    address btcUSDPriceFeed;
     address weth;
 
     address USER = makeAddr("user");
@@ -21,6 +22,9 @@ contract DSCEngineTest is Test {
     uint256 public constant INITIAL_USER_ETH_BALANCE = 100 ether;
     uint256 public constant AMOUNT_COLLATERAL = 10 ether;
     uint256 public constant STARTING_ERC20_BALANCE = 10 ether;
+
+    address[] public priceFeedAddresses;
+    address[] public tokenAddresses;
 
     function setUp() external {
         deployer = new DeployDSC();
@@ -30,6 +34,17 @@ contract DSCEngineTest is Test {
 
         vm.deal(USER, INITIAL_USER_ETH_BALANCE); // Give USER 1000 ether
         ERC20Mock(weth).mint(USER, STARTING_ERC20_BALANCE); // Mint 10 WETH to USER
+    }
+
+    //? constructor Tests -----------------------------------------------
+
+    function testRevertIfTokenLengthMisMatchInPriceFeeds() public {
+        tokenAddresses.push(weth);
+        priceFeedAddresses.push(ethUSDPriceFeed);
+        priceFeedAddresses.push(btcUSDPriceFeed); // Adding an extra price feed
+
+        vm.expectRevert(DSCEngine.DSCEngine__PriceFeedAndTokenAddressLengthMismatch.selector);
+        new DSCEngine(tokenAddresses, priceFeedAddresses, address(dsc));
     }
 
     //? Price Feed Tests -----------------------------------------------
