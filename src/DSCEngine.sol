@@ -35,6 +35,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__MintDSCFailed();
     error DSCEngine__DoNotHaveEnoughCollateralToRedeem();
     error DSCEngine__HealthFactorOk();
+    error DSCEngine__HealthFactorNotImproved();
 
     //? State Variables ----------------------------------------
     //* Constants
@@ -222,6 +223,15 @@ contract DSCEngine is ReentrancyGuard {
         uint256 totalCollateralToRedeem = tokenAmountFromDebtCovered + liquidationBonus; // total collateral to liquidate
         // redeem the collateral from the user
         _redeemCollateral(_collateral, totalCollateralToRedeem, _user, msg.sender);
+        // burn the DSC tokens from the user
+        _burnDSC(_debtToCover, _user, msg.sender);
+        // check if the health factor is still valid after liquidation
+        uint256 endingHealthFactor = _heathFactor(_user);
+        if (endingHealthFactor <= MIN_HEALTH_FACTOR) {
+            revert DSCEngine__HealthFactorNotImproved();
+        }
+        // check if the health factor ok of the liquidator
+        _revertIfHeathFactorIsBroken(msg.sender);
     }
 
     function getHealthFactor() external view returns (uint256) {}
