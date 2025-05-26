@@ -343,13 +343,17 @@ contract DSCEngine is ReentrancyGuard {
         }
     }
 
+    /**
+     * @notice This function redeems collateral from the user.
+     * @param _tokenCollateralAddress The address of the collateral token.
+     * @param _amountCollateral The amount of collateral to redeem.
+     * @param _from The address of the user to redeem the collateral from.
+     * @param _to The address to send the redeemed collateral to.
+     * @dev This function is used to redeem collateral from the user.
+     */
     function _redeemCollateral(address _tokenCollateralAddress, uint256 _amountCollateral, address _from, address _to)
         private
     {
-        // check if the user has enough collateral to redeem
-        if (s_collateralDeposited[msg.sender][_tokenCollateralAddress] < _amountCollateral) {
-            revert DSCEngine__DoNotHaveEnoughCollateralToRedeem();
-        }
         // remove the collateral from the user's deposited collateral
         s_collateralDeposited[_from][_tokenCollateralAddress] -= _amountCollateral;
         // emit the CollateralDeposited event
@@ -362,6 +366,13 @@ contract DSCEngine is ReentrancyGuard {
         }
     }
 
+    /**
+     * @notice This function burns the DSC tokens from the user.
+     * @param _amountToBurn The amount of DSC tokens to burn.
+     * @param _onBehalfOf The address of the user to burn the DSC tokens for.
+     * @param _DSCFrom The address of the user to burn the DSC tokens from.
+     * @dev This function is used to burn the DSC tokens from the user.
+     */
     function _burnDSC(uint256 _amountToBurn, address _onBehalfOf, address _DSCFrom) private {
         s_DSCMinted[_onBehalfOf] -= _amountToBurn;
         // transfer the DSC tokens from the user to this contract
