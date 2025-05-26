@@ -33,6 +33,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TransferFailed();
     error DSCEngine__HealthFactorBroken(uint256 healthFactor, uint256 minHealthFactor);
     error DSCEngine__MintDSCFailed();
+    error DSCEngine__DoNotHaveEnoughCollateralToRedeem();
 
     //? State Variables ----------------------------------------
     //* Constants
@@ -50,6 +51,7 @@ contract DSCEngine is ReentrancyGuard {
 
     //? Events -----------------------------------------------------
     event CollateralDeposited(address indexed user, address indexed token, uint256 amount);
+    event CollateralRedeemed(address indexed user, address indexed token, uint256 amount);
 
     //? contracts -------------------------------------------------
 
@@ -93,6 +95,12 @@ contract DSCEngine is ReentrancyGuard {
 
     //? Functions (external & public)-------------------------------------------------
 
+    /**
+     * @notice This function deposits your collateral and mints DSC tokens in one transaction.
+     * @param _tokenCollateralAddress The address of the collateral token.
+     * @param _amountCollateral The amount of collateral to deposit.
+     * @param _amountDSCToMint The amount of DSC tokens to mint.
+     */
     function depositCollateralAndMintDSC(
         address _tokenCollateralAddress,
         uint256 _amountCollateral,
@@ -126,7 +134,28 @@ contract DSCEngine is ReentrancyGuard {
 
     function redeemCollateralForBurnDSC() external {}
 
-    function redeemCollateral() external {}
+    function redeemCollateral(address _tokenCollateralAddress, uint256 _amountCollateral)
+        external
+        moreThanZero(_amountCollateral)
+        nonReentrant
+    {
+        // check if the user has enough collateral to redeem
+        if (s_collateralDeposited[msg.sender][_tokenCollateralAddress] < _amountCollateral) {
+            revert DSCEngine__DoNotHaveEnoughCollateralToRedeem();
+        }
+        // remove the collateral from the user's deposited collateral
+        s_collateralDeposited[msg.sender][_tokenCollateralAddress] -= _amountCollateral;
+        // emit the CollateralDeposited event
+        emit CollateralRedeemed(msg.sender, _tokenCollateralAddress, _amountCollateral);
+        // transfer the collateral from this contract to the user
+        bool success = IERC20(_tokenCollateralAddress).transfer(msg.sender, _amountCollateral);
+        // check if the transfer was successful
+        if (!success) {
+            revert DSCEngine__TransferFailed();
+        }
+        // check if the health factor is still valid after redeeming collateral
+        _revertIfHeathFactorIsBroken(msg.sender);
+    }
 
     /**
      * @notice This function mints DSC tokens.
