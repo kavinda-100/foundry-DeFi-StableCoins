@@ -301,6 +301,22 @@ contract DSCEngine is ReentrancyGuard {
         return (_usdAmount * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
     }
 
+    /**
+     * @notice This function is the public view version of the _getAccountInformation function.
+     * @dev It returns the total DSC minted and the total collateral value in USD for the caller.
+     * @param _user The address of the user to get the information for.
+     * @return totalDSCMinted The total DSC minted by the caller.
+     * @return totalCollateralValueInUSD The total collateral value in USD deposited by the caller.
+     */
+    function getAccountInformation(address _user)
+        public
+        view
+        returns (uint256 totalDSCMinted, uint256 totalCollateralValueInUSD)
+    {
+        (totalDSCMinted, totalCollateralValueInUSD) = _getAccountInformation(_user);
+        return (totalDSCMinted, totalCollateralValueInUSD);
+    }
+
     //? Functions (internal & private)-------------------------------------------------
 
     /**
