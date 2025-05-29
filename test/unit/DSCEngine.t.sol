@@ -57,6 +57,14 @@ contract DSCEngineTest is Test {
         assertEq(actualUSDValue, expectedUSDValue, "USD value should match expected value");
     }
 
+    function testGetTokenAmountFromUSD() public view {
+        uint256 usdAmount = 30000e18; // 30,000 USD
+        // 30000e18 / 2000/ETH = 15e18
+        uint256 expectedTokenAmount = 15 ether;
+        uint256 actualTokenAmount = dscEngine.getTokenAmountFromUSD(weth, usdAmount);
+        assertEq(actualTokenAmount, expectedTokenAmount, "Token amount should match expected value");
+    }
+
     //? depositCollateral Tests -----------------------------------------------
 
     function testRevetIfCollateralIsZero() external {
