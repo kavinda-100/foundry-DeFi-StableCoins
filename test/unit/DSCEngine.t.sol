@@ -91,5 +91,13 @@ contract DSCEngineTest is Test {
         vm.stopPrank();
     }
 
-    function testCanDepositCollateralAndGetAccountInfo() external {}
+    function testCanDepositCollateralAndGetAccountInfo() external depositCollateralSetup {
+        (uint256 totalDSCMinted, uint256 totalCollateralValueInUSD) = dscEngine.getAccountInformation(USER);
+
+        uint256 expectedDepositAmount = dscEngine.getTokenAmountFromUSD(weth, totalCollateralValueInUSD);
+        uint256 expectedDSCMinted = 0; // No DSC minted yet
+
+        assertEq(totalDSCMinted, expectedDSCMinted, "Total DSC minted should be zero");
+        assertEq(AMOUNT_COLLATERAL, expectedDepositAmount, "Total collateral value in USD should match deposit amount");
+    }
 }
