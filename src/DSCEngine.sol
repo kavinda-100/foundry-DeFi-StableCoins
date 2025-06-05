@@ -421,4 +421,15 @@ contract DSCEngine is ReentrancyGuard {
         // burn the DSC tokens
         i_DSCAddress.burn(_amountToBurn);
     }
+
+    //? Getters -----------------------------------------------------
+    function getDSCAddress() external view returns (DecentralizeStableCoin) {
+        return i_DSCAddress;
+    }
+    function getCollateralTokens() external view returns (address[] memory) {
+        return s_CollateralTokens;
+    }
+    function getPriceFeeders(address _token) external view returns (address) {
+        return s_priceFeeders[_token];
+    }
 }
